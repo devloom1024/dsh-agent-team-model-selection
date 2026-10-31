@@ -1,0 +1,65 @@
+{
+  "name": "dsh-agent-team-model-selection",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Agent Teams route selection: choose a teammate provider, model, and reasoning effort at spawn time, with a model catalog tool, a Settings page, and follow-parent or fixed-route policy.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json",
+    "./client": "./client.js"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md"
+  ],
+  "icon": "./icon.svg",
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node --test test/model-selection.test.js test/tool.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devloom1024/dsh-agent-team-model-selection.git"
+  },
+  "homepage": "https://github.com/devloom1024/dsh-agent-team-model-selection#readme",
+  "bugs": {
+    "url": "https://github.com/devloom1024/dsh-agent-team-model-selection/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "dsh-plugin",
+    "agent-teams",
+    "model-selection",
+    "reasoning-effort"
+  ]
+}

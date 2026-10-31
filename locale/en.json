@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Agent Teams Model Selection",
+    "description": "Per-teammate provider, model, and reasoning effort, a model catalog tool, and the Agent Teams models settings page. Replaces the shipped Agent Teams tool plugin, so its tool-agent-team row is disabled on purpose."
+  }
+}

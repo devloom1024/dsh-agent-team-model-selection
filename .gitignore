@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# logs and local state
+*.log
+npm-debug.log*
+pnpm-debug.log*
+node_modules/
+coverage/
+.dsh-inspect/
+*.tgz
+
+# local verification artifacts
+.verify-ui/

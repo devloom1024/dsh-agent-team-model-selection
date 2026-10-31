@@ -1,0 +1,31 @@
+# Agent Teams route selection layer.
+#
+# Replaces the shipped Team tool plugin so `spawn_teammate` can pin a new
+# teammate to its own provider/model/reasoning effort, `list_agents` reports the
+# route each member uses, and `list_team_models` discovers the ids a Session may
+# select. The shipped row is disabled because both plugins register the same
+# nine Team tool names in each member scope.
+- id: tool-agent-team
+  disabled: true
+
+- insert:
+    - id: tool-agent-team-model-selection
+      name: dsh-agent-team-model-selection
+      # These values are also editable in the GUI at:
+      #   Settings -> Agent Teams 模型 (settings.section id agent-team-models)
+      config:
+        interrupt: true
+        freshProvider: spawn
+        forkProvider: fork
+        modelSelection:
+          # inherit ("自动"): no spawn parameters follows the Lead; provider,
+          # model, and reasoning_effort may still pin one member.
+          # fixed: every new teammate runs on provider/model below and
+          # spawn_teammate rejects every route parameter.
+          mode: inherit
+          provider: ""
+          model: ""
+          reasoningEffort: ""
+          # Whitelist for explicit provider/model choices in inherit mode.
+          # Empty means every registered route may be passed.
+          allowedModels: []
