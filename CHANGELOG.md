@@ -4,6 +4,30 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-11-07
+
+### Changed
+
+- The automatic-mode whitelist now bounds the teammate's **effective** route,
+  not just explicit `provider`/`model` arguments. An effort-only override or a
+  no-argument spawn that would inherit a Lead route outside the whitelist is
+  refused with an error that lists the allowed routes. A restricted session can
+  therefore never create a member on an unlisted route.
+- The Team system prompt and `spawn_teammate` parameter descriptions are now
+  rendered from the live policy: restricted and fixed deployments no longer
+  claim the Lead may pass arbitrary routes.
+- The settings page shows the "select at least one route" warning directly under
+  the restriction toggle instead of only in the footer, and the whitelist help
+  text now states that inheritance is constrained too.
+
+### Fixed
+
+- **A teammate could still be spawned on a route outside the whitelist.** With
+  the restriction enabled but no `provider`/`model` arguments, `spawn_teammate`
+  fell through to inheritance and the new member ran on the Lead route, which
+  the whitelist deliberately exempted. Inheritance and effort-only overrides
+  are now checked against the whitelist.
+
 ## [0.6.0] - 2026-10-31
 
 ### Changed

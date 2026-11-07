@@ -136,9 +136,32 @@ async function assertRouteUsable(ctx, agentOptions, parentRoute, signal) {
   }, signal)
 }
 
+/** Model-facing description of the live route policy for the Team prompt. */
+function routePolicyText(policy) {
+  const unrestricted = 'When the deployment allows it, the Lead may pin a new teammate to another LLM route by passing provider, model, and reasoning_effort to spawn_teammate; discover usable ids with list_team_models.'
+  if (policy === undefined) return unrestricted
+  if (policy.mode === 'fixed') {
+    return `Every new teammate runs on the fixed route ${policy.provider}/${policy.model}. spawn_teammate rejects provider, model, and reasoning_effort; do not pass them.`
+  }
+  if (policy.allowedModels.length > 0) {
+    const routes = policy.allowedModels.map((route) => `${route.provider}/${route.model}`).join(', ')
+    return `This Session allows teammates only on these LLM routes: ${routes}. A provider/model passed to spawn_teammate must be one of them, and a no-argument spawn is refused when the Lead route is not one of them; pass an allowed route explicitly. Discover ids with list_team_models.`
+  }
+  return unrestricted
+}
+
+/** Read the live policy for prompt rendering without breaking the turn on bad config. */
+function safePolicy(getPolicy) {
+  try {
+    return getPolicy()
+  } catch {
+    return undefined
+  }
+}
+
 /** Model-facing collaboration guidance shared by Lead and teammates. */
-function teamPolicy(interrupt) {
-  const routePolicy = 'When the deployment allows it, the Lead may pin a new teammate to another LLM route by passing provider, model, and reasoning_effort to spawn_teammate; discover usable ids with list_team_models.'
+function teamPolicy(interrupt, getPolicy) {
+  const routePolicy = routePolicyText(safePolicy(getPolicy))
   return `Agent Teams is available in this session
 
 The Team Lead and all teammates share the same working directory and filesystem. Edits are immediately visible to every member. Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.
@@ -346,7 +369,7 @@ function install(agent, ctx, config, getPolicy) {
     register(scoped.systemPrompt.section({
       name: 'team:policy',
       order: scoped.systemPrompt.getSectionOrder('TEAM_POLICY'),
-      text: teamPolicy(config.interrupt),
+      text: () => teamPolicy(config.interrupt, getPolicy),
     }))
     register(scoped.systemPrompt.context({
       name: 'team:identity',
@@ -385,15 +408,15 @@ To message another teammate, use send_message({ target: "<teammate name>", messa
         },
         provider: {
           type: 'string',
-          description: 'LLM provider id for the teammate; requires model. Auto route mode only: fixed-route mode rejects it. Discover ids with list_team_models.',
+          description: 'LLM provider id for the teammate; requires model. Auto route mode only: fixed-route mode rejects it, and a Session with a route restriction accepts only an allowed route. Discover ids with list_team_models.',
         },
         model: {
           type: 'string',
-          description: 'Exact LLM model id for the teammate in auto route mode; requires provider.',
+          description: 'Exact LLM model id for the teammate in auto route mode; requires provider and must belong to an allowed route when the Session restricts routes.',
         },
         reasoning_effort: {
           type: 'string',
-          description: 'Reasoning effort id for the teammate in auto route mode. Omit to inherit the Lead effort when the route is unchanged, or to use the model default.',
+          description: 'Reasoning effort id for the teammate in auto route mode. Omit to inherit the Lead effort when the route is unchanged, or to use the model default. With a route restriction, the route it applies to must also be allowed.',
         },
       },
       output: jsonOutput(SPAWN_VALUE_SCHEMA),

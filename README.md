@@ -13,7 +13,7 @@ Agent Teams 扩展插件：创建成员时指定 LLM 路由（provider / model /
 
 | 模式 | `modelSelection.mode` | 行为 |
 |---|---|---|
-| **自动**（默认） | `inherit` | 不传路由参数时沿用 Lead 当前路由（之后 Lead 切换模型也继续跟随）；仍可传 `provider`、`model`、`reasoning_effort` 为单个成员指定路由；可开启白名单，开启后只能传白名单内的路由 |
+| **自动**（默认） | `inherit` | 不传路由参数时沿用 Lead 当前路由（之后 Lead 切换模型也继续跟随）；仍可传 `provider`、`model`、`reasoning_effort` 为单个成员指定路由；可开启白名单，开启后成员的实际路由必须落在白名单内（含继承） |
 | **固定路由** | `fixed` | 所有新成员统一使用配置的路由；`spawn_teammate` 一旦带任何路由参数就报错 |
 
 两种模式的设置菜单不同：
@@ -22,11 +22,12 @@ Agent Teams 扩展插件：创建成员时指定 LLM 路由（provider / model /
 |---|---|---|
 | 路由模式选择 | ✓ | ✓ |
 | 固定路由：提供方 / 模型 / 思考等级 | — | ✓ |
-| 可传入的路由白名单（开关 + 路由列表） | ✓ | — |
+| 成员可用路由白名单（开关 + 路由列表，约束成员实际路由） | ✓ | — |
 
 规则细节：
 
-- 自动模式下，**白名单只约束显式传入的 provider/model**；不传参数时的继承路由、以及只传 `reasoning_effort` 的请求都不受白名单限制（白名单不是“成员实际路由”的硬限制）。
+- 自动模式下，**白名单约束成员的实际路由**：显式传入的 provider/model 必须在名单内；只传 `reasoning_effort`、或不传参数继承 Lead 路由时，解析出的实际路由也必须在名单内，否则拒绝创建并提示可用的路由。
+- 父路由未知（无法与白名单比对）时，受限模式下也拒绝继承，要求显式传白名单内的路由。
 - 自动模式下，显式传入 provider/model 但未给 effort 时，不继承 Lead 的思考等级，交给该模型解析默认值。
 - 固定模式不使用白名单；固定路由由管理员直接配置，只校验提供方/模型是否存在。
 - 路由在创建成员前通过 LLM 运行时（`resolveCallConfig`）校验。
@@ -48,9 +49,9 @@ Agent Teams 扩展插件：创建成员时指定 LLM 路由（provider / model /
 |---|---|---|
 | 路由模式：自动 / 固定路由 | `modelSelection.mode` | 始终 |
 | 提供方 / 模型 / 思考等级 | `provider` / `model` / `reasoningEffort` | 固定路由模式 |
-| 限制可传入的路由 + 路由清单 | `allowedModels` | 自动模式 |
+| 限制成员可用的路由 + 路由清单 | `allowedModels` | 自动模式 |
 
-页面行为：只读部署禁用控件；保存失败保留草稿并提示；其他页面抢先修改过设置时提示冲突；思考等级按所选模型动态列出；已保存但当前不可用的路由仍可移除；关闭“限制”会保留现有草稿（不写入空列表）。
+页面行为：只读部署禁用控件；开启“限制”但未勾选任何路由时，保存保持禁用并在开关下方直接提示；保存失败保留草稿并提示；其他页面抢先修改过设置时提示冲突；思考等级按所选模型动态列出；已保存但当前不可用的路由仍可移除；关闭“限制”会保留现有草稿（不写入空列表）。
 
 也可以直接改 **profile 的 `cordis.patch.yml`**（`config` 整体替换，需写全字段）：
 
@@ -93,7 +94,7 @@ plugin_manager({ action: "install_bundle", target: "<本目录绝对路径>" })
 
 插件同时声明 host 与 client 两半。首次安装后如果设置页没有出现，刷新一次页面；极端情况下（同一 Host 进程中先安装过没有 `dsh.client` 的旧版本）重启一次 DSH 应用。
 
-### 本机验证记录（v0.6.0）
+### 本机验证记录（v0.7.0）
 
 | 场景 | 结果 |
 |---|---|
@@ -102,7 +103,9 @@ plugin_manager({ action: "install_bundle", target: "<本目录绝对路径>" })
 | 固定路由模式 + 不传参数 | 成员使用配置路由，session header 与配置一致 |
 | 固定路由模式 + 传 `provider`/`model` | 工具报错：`fixed-route mode does not accept spawn route parameters` |
 | 设置写入：固定路由 → 自动 | describe 与运行中策略恢复 `inherit`；profile 补丁无残留覆盖行 |
-| 设置页 | Client `settings.section` occupants 含 `agent-team-models`（order 25，active）；两种模式字段互补 |
+| 自动模式 + 开启白名单 + 不传参数、Lead 路由不在名单 | 工具报错（`the inherited Lead route ... is not allowed`），不会创建成员 |
+| 自动模式 + 开启白名单 + 只传 `reasoning_effort`、继承路由不在名单 | 工具报错（`cannot apply reasoning_effort ...`） |
+| 设置页 | Client `settings.section` occupants 含 `agent-team-models`（order 25，active）；两种模式字段互补；开启限制但未勾选路由时开关下方直接提示 |
 | 行 Config schema | 五个字段带 `x-cordis.volatile`，构成设置表单 |
 | 单元测试 / 页面离线渲染 | 16 个单元测试通过；页面 harness 验证自动模式白名单校验、固定模式字段切换与保存生成的 4 条 volatile 字段写入 |
 

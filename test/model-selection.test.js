@@ -73,19 +73,24 @@ test('auto mode: route pairing and emptiness are enforced', () => {
   assert.throws(() => resolveSpawnModel(auto, undefined, { reasoning_effort: 'max' }), /without an effective inherited route/)
 })
 
-test('auto mode: the whitelist bounds explicit routes only', () => {
+test('auto mode: the whitelist bounds the effective route, including inheritance', () => {
   const policy = normalizeModelSelectionConfig({ allowedModels: [{ provider: 'p', model: 'm' }] })
   assert.equal(isAllowedRoute(policy, 'p', 'm'), true)
   assert.equal(isAllowedRoute(policy, 'p', 'other'), false)
   assert.deepEqual(resolveSpawnModel(policy, parent, { provider: 'p', model: 'm' }).agentOptions, { provider: 'p', model: 'm' })
-  assert.throws(() => resolveSpawnModel(policy, parent, { provider: 'p', model: 'other' }), /not allowed for this Session/)
-  // Inheritance is not an explicit choice, so it passes even when the Lead route is unlisted.
-  assert.deepEqual(resolveSpawnModel(policy, parent, {}), { agentOptions: undefined, route: parent })
-  // Effort-only is not a route choice either.
-  assert.deepEqual(resolveSpawnModel(policy, parent, { reasoning_effort: 'max' }), {
+  assert.throws(() => resolveSpawnModel(policy, parent, { provider: 'p', model: 'other' }), /allowed routes: p\/m/)
+  // An unlisted Lead route may no longer be inherited, because the member would run outside the whitelist.
+  assert.throws(() => resolveSpawnModel(policy, parent, {}), /inherited Lead route "lead-provider\/lead-model" is not allowed/)
+  assert.throws(() => resolveSpawnModel(policy, parent, { reasoning_effort: 'max' }), /cannot apply reasoning_effort to the inherited route/)
+  // A listed Lead route may still be inherited, with or without an effort override.
+  const listedParent = { provider: 'p', model: 'm', reasoningEffort: 'low' }
+  assert.deepEqual(resolveSpawnModel(policy, listedParent, {}), { agentOptions: undefined, route: listedParent })
+  assert.deepEqual(resolveSpawnModel(policy, listedParent, { reasoning_effort: 'max' }), {
     agentOptions: { reasoningEffort: 'max' },
-    route: { provider: 'lead-provider', model: 'lead-model', reasoningEffort: 'max' },
+    route: { provider: 'p', model: 'm', reasoningEffort: 'max' },
   })
+  // An unknown Lead route cannot be verified against the whitelist.
+  assert.throws(() => resolveSpawnModel(policy, undefined, {}), /cannot inherit the Lead route because it is unknown/)
 })
 
 test('fixed mode: always uses the configured route and rejects every spawn parameter', () => {

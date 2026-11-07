@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-team-model-selection",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Agent Teams route selection: choose a teammate provider, model, and reasoning effort at spawn time, with a model catalog tool, a Settings page, and follow-parent or fixed-route policy.",
   "type": "module",
